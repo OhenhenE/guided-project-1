@@ -6,6 +6,9 @@ let filmsDiv;
 let planetDiv;
 const baseUrl = `http://localhost:9001/api`;
 
+let planetsArray = {};   // to do rename item so its an object not array oops
+let filmsArray = {};
+
 // Runs on page load
 addEventListener('DOMContentLoaded', () => {
   nameH1 = document.querySelector('h1#name');
@@ -23,8 +26,8 @@ async function getCharacter(id) {
   let character;
   try {
     character = await fetchCharacter(id)
-    character.homeworld = await fetchHomeworld(character)
-    character.films = await fetchFilms(character)
+    character.homeworld = await fetchHomeworld(character, id)
+    character.films = await fetchFilms(character, id)
   }
   catch (ex) {
     console.error(`Error reading character ${id} data.`, ex.message);
@@ -38,18 +41,31 @@ async function fetchCharacter(id) {
     .then(res => res.json())
 }
 
-async function fetchHomeworld(character) {
-  const url = `${baseUrl}/planets/${character?.homeworld}`;
-  const planet = await fetch(url)
+async function fetchHomeworld(character, id) {
+  if (id in filmsArray) {
+    return filmsArray.id
+  }
+  else {
+    const url = `${baseUrl}/planets/${character?.homeworld}`;
+    const planet = await fetch(url)
     .then(res => res.json())
-  return planet;
+    addtoLocalStore("planets", planet, id)
+    return planet;
+  }
 }
 
-async function fetchFilms(character) {
-  const url = `${baseUrl}/characters/${character?.id}/films`;
-  const films = await fetch(url)
-    .then(res => res.json())
-  return films;
+async function fetchFilms(character, id) {
+  if (id in planetsArray) {
+    return planetsArray.id
+  }
+  else {
+    const url = `${baseUrl}/characters/${character?.id}/films`;
+    const films = await fetch(url)
+      .then(res => res.json())
+    addtoLocalStore("films", films, id)
+    return films;
+  }
+
 }
 
 const renderCharacter = character => {
@@ -61,4 +77,13 @@ const renderCharacter = character => {
   homeworldSpan.innerHTML = `<a href="/planet.html?id=${character?.homeworld.id}">${character?.homeworld.name}</a>`;
   const filmsLis = character?.films?.map(film => `<li><a href="/film.html?id=${film.id}">${film.title}</li>`)
   filmsUl.innerHTML = filmsLis.join("");
+}
+
+
+function addtoLocalStore(type, data, id) {
+  if (type === "planets") {
+    planetsArray.id = data; // to-do, filter extra data out
+  } else if (type === "films") {
+    filmsArray.id = data;
+  }
 }
