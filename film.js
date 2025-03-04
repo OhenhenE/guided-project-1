@@ -4,6 +4,8 @@ let director;
 let episode;
 const baseUrl = `http://localhost:9001/api`;
 
+let localPlanetStore = {};
+let localCharacterStore = {};
 
 addEventListener('DOMContentLoaded', () => {
   filmNameH1 = document.querySelector('h1#filmName');
@@ -16,8 +18,29 @@ addEventListener('DOMContentLoaded', () => {
   const sp = new URLSearchParams(window.location.search)
   const id = sp.get('id')
 
+  getSessionStorage();
   getFilm(id)
 });
+
+// Runs on page Unload
+addEventListener("beforeunload", () => {
+  storeSessionStorage(); // Save Session Storage Objects 
+});
+
+function getSessionStorage () {
+  if (sessionStorage.getItem("filmStorePlanet")) {
+    localPlanetStore = JSON.parse(sessionStorage.getItem("filmStorePlanet"));
+  }
+  
+  if (sessionStorage.getItem("filmStoreChar")) {
+    localCharacterStore = JSON.parse(sessionStorage.getItem("filmStoreChar"));
+  }
+}
+
+function storeSessionStorage () {
+  sessionStorage.setItem("filmStorePlanet",JSON.stringify(localPlanetStore));
+  sessionStorage.setItem("filmStoreChar",JSON.stringify(localCharacterStore));
+}
 
 async function getFilm(id) {
   let film;
@@ -39,17 +62,28 @@ async function fetchFilm(id) {
 }
 
 async function fetchCharacter(id) {
-  const url = `${baseUrl}/films/${id}/characters`;  
-  const character = await fetch(url)
-    .then(res => res.json())
-  return character;
+  if (id in localCharacterStore) {
+    return localCharacterStore[id]
+  } else {
+    const url = `${baseUrl}/films/${id}/characters`;  
+    const character = await fetch(url)
+      .then(res => res.json())
+    addtoLocalStore("characters", character, id)
+    return character;
+  }
 }
 
 async function fetchPlanets(id) {
-  const url = `${baseUrl}/films/${id}/planets`;  
-  const films = await fetch(url)
-    .then(res => res.json())
-  return films;
+  if (id in localPlanetStore) {
+    return localPlanetStore[id]
+  }
+  else {
+    const url = `${baseUrl}/films/${id}/planets`;  
+    const planets = await fetch(url)
+      .then(res => res.json())
+    addtoLocalStore("planets", planets, id)
+    return planets;
+  }
 }
 
 const renderFilm = film => {
@@ -64,4 +98,12 @@ const renderFilm = film => {
 
   const characterLis = film?.characters?.map(character => `<li><a href="/character.html?id=${character.id}">${character.name}</a></li>`)
   charactersUl.innerHTML = characterLis.join("");
+}
+
+function addtoLocalStore(type, data, id) {
+  if (type === "planets") {
+    localPlanetStore[id] = data; // to-do, filter extra data out
+  } else if (type === "characters") {
+    localCharacterStore[id] = data;
+  }
 }
