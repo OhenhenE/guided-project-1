@@ -6,8 +6,8 @@ let filmsDiv;
 let planetDiv;
 const baseUrl = `http://localhost:9001/api`;
 
-let planetsArray = {};   // to do rename item so its an object not array oops
-let filmsArray = {};
+let localPlanetStore = {};
+let localFilmStore = {};
 
 // Runs on page load
 addEventListener('DOMContentLoaded', () => {
@@ -17,10 +17,31 @@ addEventListener('DOMContentLoaded', () => {
   populationSpan = document.querySelector('span#height');
   homeworldSpan = document.querySelector('span#homeworld');
   filmsUl = document.querySelector('#films>ul');
-  const sp = new URLSearchParams(window.location.search)
-  const id = sp.get('id')
-  getCharacter(id)
+  const sp = new URLSearchParams(window.location.search);
+  const id = sp.get('id');
+  getSessionStorage();
+  getCharacter(id);
 });
+
+// Runs on page Unload
+addEventListener("beforeunload", () => {
+  storeSessionStorage(); // Save Session Storage Objects 
+});
+
+function getSessionStorage () {
+  if (sessionStorage.getItem("charStorePlanet")) {
+    localPlanetStore = JSON.parse(sessionStorage.getItem("charStorePlanet"));
+  }
+  
+  if (sessionStorage.getItem("charStoreFilm")) {
+    localFilmStore = JSON.parse(sessionStorage.getItem("charStoreFilm"));
+  }
+}
+
+function storeSessionStorage () {
+  sessionStorage.setItem("charStorePlanet",JSON.stringify(localPlanetStore));
+  sessionStorage.setItem("charStoreFilm",JSON.stringify(localFilmStore));
+}
 
 async function getCharacter(id) {
   let character;
@@ -42,12 +63,12 @@ async function fetchCharacter(id) {
 }
 
 async function fetchHomeworld(character, id) {
-  if (id in filmsArray) {
-    return filmsArray.id
+  if (id in localPlanetStore) {
+    return localPlanetStore[id]
   }
   else {
     const url = `${baseUrl}/planets/${character?.homeworld}`;
-    const planet = await fetch(url)
+    let planet = await fetch(url)
     .then(res => res.json())
     addtoLocalStore("planets", planet, id)
     return planet;
@@ -55,17 +76,15 @@ async function fetchHomeworld(character, id) {
 }
 
 async function fetchFilms(character, id) {
-  if (id in planetsArray) {
-    return planetsArray.id
-  }
-  else {
+  if (id in localFilmStore) {
+    return localFilmStore[id]
+  } else {
     const url = `${baseUrl}/characters/${character?.id}/films`;
-    const films = await fetch(url)
+    let films = await fetch(url)
       .then(res => res.json())
     addtoLocalStore("films", films, id)
     return films;
   }
-
 }
 
 const renderCharacter = character => {
@@ -75,15 +94,15 @@ const renderCharacter = character => {
   diameterSpan.textContent = character?.mass;
   climateSpan.textContent = character?.birth_year;
   homeworldSpan.innerHTML = `<a href="/planet.html?id=${character?.homeworld.id}">${character?.homeworld.name}</a>`;
-  const filmsLis = character?.films?.map(film => `<li><a href="/film.html?id=${film.id}">${film.title}</li>`)
+  const filmsLis = character?.films?.map(film => `<li><a href="/film.html?id=${film.id}">${film.title}</li>`);
   filmsUl.innerHTML = filmsLis.join("");
 }
 
 
 function addtoLocalStore(type, data, id) {
   if (type === "planets") {
-    planetsArray.id = data; // to-do, filter extra data out
+    localPlanetStore[id] = data; // to-do, filter extra data out
   } else if (type === "films") {
-    filmsArray.id = data;
+    localFilmStore[id] = data;
   }
 }
